@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Unit Converter</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            --text-primary: #fff;
+            --text-secondary: #a8d8ff;
+            --ui-bg: rgba(255, 255, 255, 0.1);
+            --ui-border: rgba(255, 255, 255, 0.2);
+            --accent-primary: #4facfe;
+            --input-bg: rgba(0, 0, 0, 0.2);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--ui-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--ui-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+        }
+        h1, h2 {
+            text-align: center;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        h1 { margin-bottom: 20px; }
+        h2 { font-size: 1.2em; margin-top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--text-secondary); }
+        select, input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--ui-border);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.3);
+        }
+        .conversion-row { display: flex; align-items: center; gap: 10px; }
+        #outputValue { background: rgba(0,0,0,0.4); font-weight: bold; color: var(--accent-primary); }
+        .details-section { 
+            margin-top: 20px; 
+            padding-top: 15px; 
+            border-top: 1px solid var(--ui-border);
+        }
+        #explanation { text-align: center; font-style: italic; color: var(--text-secondary); margin-bottom: 15px; min-height: 20px;}
+        #examples-list { list-style: none; padding-left: 0; font-family: 'Courier New', Courier, monospace; }
+        #examples-list li { background: var(--input-bg); padding: 8px; border-radius: 4px; margin-bottom: 5px; }
+        .action-button {
+            background: var(--accent-primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+            margin: 0 5px;
+        }
+        .action-button:hover {
+            background: #3c9ce0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Universal Converter</h1>
+        <div class="form-group">
+            <label for="categorySelector">Measurement Type</label>
+            <select id="categorySelector"></select>
+        </div>
+        <div class="conversion-row">
+            <div class="form-group" style="flex:2;"><label for="fromUnit">From</label><select id="fromUnit"></select></div>
+            <div class="form-group" style="flex:2;"><label for="toUnit">To</label><select id="toUnit"></select></div>
+        </div>
+        <div class="form-group" style="text-align: center;">
+            <button id="swapButton" class="action-button">Swap Units</button>
+            <button id="copyButton" class="action-button">Copy Result</button>
+        </div>
+        <div class="conversion-row">
+             <div class="form-group" style="flex:1;"><label for="inputValue">Input Value</label><input type="number" id="inputValue" value="1"></div>
+             <div class="form-group" style="flex:1;"><label for="outputValue">Output</label><input type="text" id="outputValue" readonly></div>
+        </div>
+        <div class="details-section">
+            <p id="explanation"></p>
+            <h2>Examples</h2>
+            <ul id="examples-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Full list of conversions
+        const conversions = {
+            Length: { base: 'Meter', units: { Meter: 1, Kilometer: 1000, Centimeter: 0.01, Millimeter: 0.001, Mile: 1609.34, Yard: 0.9144, Foot: 0.3048, Inch: 0.0254, 'Light Year': 9.461e15, Parsec: 3.086e16, Angstrom: 1e-10, Nanometer: 1e-9, Micron: 1e-6 } },
+            Angle: { base: 'Degree', units: { Degree: 1, Radian: 57.2958, Gradian: 0.9, Arcminute: 0.0166667, Arcsecond: 0.000277778 } },
+            Force: { base: 'Newton', units: { Newton: 1, Dyne: 1e-5, 'Pound-force': 4.44822, Kip: 4448.22 } },
+            Torque: { base: 'Newton-meter', units: { 'Newton-meter': 1, 'Pound-foot': 1.35582, 'Pound-inch': 0.112985 } },
+            Area: { base: 'Square Meter', units: { 'Square Meter': 1, 'Square Kilometer': 1e6, Hectare: 10000, 'Square Mile': 2.59e6, Acre: 4046.86, 'Square Foot': 0.092903 } },
+            Mass: { base: 'Kilogram', units: { Kilogram: 1, Gram: 0.001, Milligram: 1e-6, Tonne: 1000, Pound: 0.453592, Ounce: 0.0283495 } },
+            Volume: { base: 'Liter', units: { Liter: 1, 'Cubic Meter': 1000, Milliliter: 0.001, 'US Gallon': 3.78541, 'US Quart': 0.946353, 'US Pint': 0.473176 } },
+            Speed: { base: 'Meters per Second', units: { 'Meters per Second': 1, 'Kilometers per Hour': 3.6, 'Miles per Hour': 2.23694, Knot: 1.94384 } },
+            Temperature: { base: 'Celsius', units: { Celsius: 1, Fahrenheit: 1, Kelvin: 1 } },
+            Energy: { base: 'Joule', units: { Joule: 1, Kilojoule: 1000, Calorie: 4.184, Kilocalorie: 4184, 'Watt Hour': 3600, BTU: 1055.06 } },
+            Power: { base: 'Watt', units: { Watt: 1, Kilowatt: 1000, Megawatt: 1e6, Horsepower: 745.7 } },
+            Pressure: { base: 'Pascal', units: { Pascal: 1, Kilopascal: 1000, Bar: 100000, PSI: 6894.76, Atmosphere: 101325 } },
+            'Digital Storage': { base: 'Byte', units: { Byte: 1, Kilobyte: 1024, Megabyte: 1048576, Gigabyte: 1073741824, Terabyte: 1099511627776 } },
+            Time: { base: 'Second', units: { Second: 1, Minute: 60, Hour: 3600, Day: 86400, Week: 604800 } },
+            'Fuel Economy': { base: 'Miles per Gallon', units: { 'Miles per Gallon': 1, 'Liters per 100km': 1, 'Kilometers per Liter': 1 } },
+            Cooking: { base: 'Milliliter', units: { Teaspoon: 4.92892, Tablespoon: 14.7868, 'Fluid Ounce': 29.5735, Cup: 236.588, Pint: 473.176, Quart: 946.353, Gallon: 3785.41, Milliliter: 1, Liter: 1000 } }
+        };
+
+        const categorySelector = document.getElementById('categorySelector');
+        const fromUnitSelector = document.getElementById('fromUnit');
+        const toUnitSelector = document.getElementById('toUnit');
+        const inputValue = document.getElementById('inputValue');
+        const outputValue = document.getElementById('outputValue');
+        const explanationEl = document.getElementById('explanation');
+        const examplesListEl = document.getElementById('examples-list');
+        const swapButton = document.getElementById('swapButton');
+        const copyButton = document.getElementById('copyButton');
+
+        swapButton.addEventListener('click', () => {
+            const fromValue = fromUnitSelector.value;
+            fromUnitSelector.value = toUnitSelector.value;
+            toUnitSelector.value = fromValue;
+            convert();
+        });
+
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(outputValue.value).then(() => {
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyButton.textContent = 'Copy Result';
+                }, 1500);
+            });
+        });
+
+        function populateCategories() {
+            const categoryNames = {
+                Length: 'Length',
+                Angle: 'Angle',
+                Force: 'Force',
+                Torque: 'Torque',
+                Area: 'Area',
+                Mass: 'Mass',
+                Volume: 'Volume',
+                Speed: 'Speed',
+                Temperature: 'Temperature',
+                Energy: 'Energy',
+                Power: 'Power',
+                Pressure: 'Pressure',
+                'Digital Storage': 'Digital Storage',
+                Time: 'Time',
+                'Fuel Economy': 'Fuel Economy',
+                Cooking: 'Cooking'
+            };
+
+            for (const category in conversions) {
+                categorySelector.add(new Option(categoryNames[category] || category, category));
+            }
+        }
+
+        function populateUnits() {
+            const categoryName = categorySelector.value;
+            const category = conversions[categoryName];
+            fromUnitSelector.innerHTML = '';
+            toUnitSelector.innerHTML = '';
+            for (const unit in category.units) {
+                fromUnitSelector.add(new Option(unit, unit));
+                toUnitSelector.add(new Option(unit, unit));
+            }
+            fromUnitSelector.value = category.base;
+            toUnitSelector.value = fromUnitSelector.children[1]?.value || fromUnitSelector.children[0].value;
+        }
+
+        function updateDetails() {
+            const categoryName = categorySelector.value;
+            const fromUnit = fromUnitSelector.value;
+            const toUnit = toUnitSelector.value;
+            explanationEl.textContent = '';
+            examplesListEl.innerHTML = '';
+
+            if (fromUnit === toUnit) return;
+
+            if (categoryName === 'Temperature') {
+                let formula = '';
+                if (fromUnit === 'Celsius' && toUnit === 'Fahrenheit') formula = `(°C × 9/5) + 32 = °F`;
+                else if (fromUnit === 'Fahrenheit' && toUnit === 'Celsius') formula = `(°F - 32) × 5/9 = °C`;
+                else if (fromUnit === 'Celsius' && toUnit === 'Kelvin') formula = `°C + 273.15 = K`;
+                else if (fromUnit === 'Kelvin' && toUnit === 'Celsius') formula = `K - 273.15 = °C`;
+                else if (fromUnit === 'Fahrenheit' && toUnit === 'Kelvin') formula = `(°F - 32) × 5/9 + 273.15 = K`;
+                else if (fromUnit === 'Kelvin' && toUnit === 'Fahrenheit') formula = `(K - 273.15) × 9/5 + 32 = °F`;
+                
+                if(formula){
+                    explanationEl.textContent = `Formula: ${formula}`;
+                } else {
+                    explanationEl.textContent = `Temperature conversions involve an offset.`;
+                }
+
+            } else if (categoryName === 'Fuel Economy') {
+                let formula = '';
+                if (fromUnit === 'Miles per Gallon' && toUnit === 'Liters per 100km') formula = `235.214 / MPG = L/100km`;
+                else if (fromUnit === 'Liters per 100km' && toUnit === 'Miles per Gallon') formula = `235.214 / (L/100km) = MPG`;
+                else if (fromUnit === 'Miles per Gallon' && toUnit === 'Kilometers per Liter') formula = `MPG * 0.425144 = km/L`;
+                else if (fromUnit === 'Kilometers per Liter' && toUnit === 'Miles per Gallon') formula = `km/L * 2.35214 = MPG`;
+                else if (fromUnit === 'Liters per 100km' && toUnit === 'Kilometers per Liter') formula = `100 / (L/100km) = km/L`;
+                else if (fromUnit === 'Kilometers per Liter' && toUnit === 'Liters per 100km') formula = `100 / km/L = L/100km`;
+
+                if(formula){
+                    explanationEl.textContent = `Formula: ${formula}`;
+                } else {
+                    explanationEl.textContent = `Fuel economy conversions involve division.`;
+                }
+            } else {
+                const category = conversions[categoryName];
+                const factor = category.units[fromUnit] / category.units[toUnit];
+                explanationEl.textContent = factor > 1 ? `To convert, multiply ${fromUnit} by ${factor.toPrecision(4)}.` : `To convert, divide ${fromUnit} by ${(1 / factor).toPrecision(4)}.`;
+
+                [5, 25, 350].forEach(ex => {
+                    const result = ex * factor;
+                    const li = document.createElement('li');
+                    li.textContent = `${ex} ${fromUnit} = ${result.toPrecision(4)} ${toUnit}`;
+                    examplesListEl.appendChild(li);
+                });
+            }
+        }
+
+        function convert() {
+            const categoryName = categorySelector.value;
+            const value = parseFloat(inputValue.value);
+            if (isNaN(value)) { outputValue.value = 'Invalid'; return; }
+            
+            const category = conversions[categoryName];
+            const fromUnit = fromUnitSelector.value;
+            const toUnit = toUnitSelector.value;
+            
+            let result;
+            if (categoryName === 'Temperature') {
+                let tempInC;
+                switch (fromUnit) {
+                    case 'Celsius':
+                        tempInC = value;
+                        break;
+                    case 'Fahrenheit':
+                        tempInC = (value - 32) * 5/9;
+                        break;
+                    case 'Kelvin':
+                        tempInC = value - 273.15;
+                        break;
+                }
+
+                switch (toUnit) {
+                    case 'Celsius':
+                        result = tempInC;
+                        break;
+                    case 'Fahrenheit':
+                        result = (tempInC * 9/5) + 32;
+                        break;
+                    case 'Kelvin':
+                        result = tempInC + 273.15;
+                        break;
+                }
+            } else if (categoryName === 'Fuel Economy') {
+                let kmPerLiter;
+                switch (fromUnit) {
+                    case 'Miles per Gallon':
+                        kmPerLiter = value * 0.425144;
+                        break;
+                    case 'Liters per 100km':
+                        kmPerLiter = 100 / value;
+                        break;
+                    case 'Kilometers per Liter':
+                        kmPerLiter = value;
+                        break;
+                }
+
+                switch (toUnit) {
+                    case 'Miles per Gallon':
+                        result = kmPerLiter * 2.35214;
+                        break;
+                    case 'Liters per 100km':
+                        result = 100 / kmPerLiter;
+                        break;
+                    case 'Kilometers per Liter':
+                        result = kmPerLiter;
+                        break;
+                }
+            } else {
+                result = value * category.units[fromUnit] / category.units[toUnit];
+            }
+            
+            outputValue.value = result.toPrecision(6);
+            updateDetails();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateCategories();
+            populateUnits();
+            convert();
+            categorySelector.addEventListener('change', () => {
+                populateUnits();
+                convert();
+            });
+            [fromUnitSelector, toUnitSelector].forEach(el => el.addEventListener('change', convert));
+            inputValue.addEventListener('input', convert);
+        });
+    </script>
+</body>
+</html>

@@ -30,7 +30,7 @@ A single-page web application that provides a universal unit converter. It is bu
 
 ## How to Use
 
-1.  Open the `unitconvert.html` file in your web browser.
+1.  Open the `index.html` file in your web browser.
 2.  Select a measurement category from the dropdown menu.
 3.  Select the "From" and "To" units.
 4.  Enter the value you want to convert in the "Input Value" field.
@@ -44,7 +44,7 @@ A single-page web application that provides a universal unit converter. It is bu
 
 ## Development
 
-All the code for this project is located in the `unitconvert.html` file.
+All the code for this project is located in the `index.html` file.
 
 *   **HTML:** The structure of the application is defined in the `<body>` of the HTML.
 *   **CSS:** The styles are embedded within the `<style>` tags in the `<head>` of the HTML.
